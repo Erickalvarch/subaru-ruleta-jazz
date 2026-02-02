@@ -5,7 +5,7 @@ export default function Home() {
     {
       title: 'Registro',
       desc: 'Formulario para generar código del jugador.',
-      href: '/ruleta',
+      href: '/registro',
       badge: '1',
     },
     {
