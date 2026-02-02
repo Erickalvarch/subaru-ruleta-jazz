@@ -1,65 +1,109 @@
-import Image from "next/image";
+import Link from 'next/link'
 
 export default function Home() {
+  const items = [
+    {
+      title: 'Registro',
+      desc: 'Formulario para generar código del jugador.',
+      href: '/ruleta',
+      badge: '1',
+    },
+    {
+      title: 'Stand',
+      desc: 'Pantalla para ingresar código y girar la ruleta.',
+      href: '/stand',
+      badge: '2',
+    },
+    {
+      title: 'Staff',
+      desc: 'Ajuste de % y reportes (PIN requerido).',
+      href: '/admin/premios',
+      badge: '3',
+    },
+  ] as const
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <main className="min-h-screen bg-white text-neutral-900">
+      {/* Marco 16:9 */}
+      <div className="mx-auto w-full max-w-[1400px] px-6 py-8">
+        <div className="rounded-[28px] border border-neutral-200 bg-white shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-6 px-8 py-6 border-b border-neutral-200">
+            <div className="flex items-center gap-4">
+              {/* Si tienes logo: /public/images/subaru.png */}
+              <img
+                src="/images/subaru.png"
+                alt="Subaru"
+                className="h-10 w-auto object-contain"
+              />
+              <div>
+                <div className="text-2xl font-black tracking-tight text-blue-800">
+                  Ruleta Subaru Jazz
+                </div>
+                <div className="text-sm text-neutral-600">
+                  Menú rápido · Acceso a Registro / Stand / Staff
+                </div>
+              </div>
+            </div>
+
+            {/* Header evento (si existe) */}
+            <img
+              src="/images/header-evento2.jpg"
+              alt="Evento"
+              className="hidden md:block h-14 w-auto object-contain"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
+
+          {/* Contenido */}
+          <div className="p-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {items.map((it) => (
+                <Link
+                  key={it.href}
+                  href={it.href}
+                  className="group rounded-3xl border border-neutral-200 bg-neutral-50 p-6 shadow-sm hover:shadow-lg transition"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="text-5xl font-black text-blue-700/15 leading-none">
+                      {it.badge}
+                    </div>
+                    <div className="h-10 w-10 rounded-2xl bg-blue-700 text-white flex items-center justify-center font-black group-hover:scale-105 transition">
+                      →
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="text-2xl font-black text-neutral-900 group-hover:text-blue-800 transition">
+                      {it.title}
+                    </div>
+                    <div className="mt-1 text-neutral-600">{it.desc}</div>
+                  </div>
+
+                  <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-bold text-neutral-700">
+                    Ir a {it.title}
+                    <span className="text-blue-800">•</span>
+                    {it.href}
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="mt-8 rounded-3xl border border-blue-100 bg-blue-50 p-5">
+              <div className="text-sm font-bold text-blue-900">Tip stand</div>
+              <div className="text-sm text-blue-900/80 mt-1">
+                En la pantalla Stand puedes iniciar con click derecho (si está habilitado en tu página de stand)
+                y el menú del mouse debería quedar bloqueado.
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-8 py-5 border-t border-neutral-200 text-xs text-neutral-500 flex items-center justify-between">
+            <span>Subaru · Ruleta Stand</span>
+            <span>Home / menú</span>
+          </div>
         </div>
-      </main>
-    </div>
-  );
+      </div>
+    </main>
+  )
 }
