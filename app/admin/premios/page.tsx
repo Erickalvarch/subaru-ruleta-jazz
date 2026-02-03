@@ -37,6 +37,8 @@ export default function AdminPremiosPage() {
     return PRIZES.reduce((acc, p) => acc + (Number(weights[p]) || 0), 0)
   }, [weights])
 
+  const remaining = useMemo(() => 100 - total, [total])
+
   /* ---------------- REPORTES ---------------- */
 
   async function fetchDailyReport() {
@@ -83,13 +85,18 @@ export default function AdminPremiosPage() {
 
       const next = { ...weights }
       for (const p of PRIZES) {
-        const f = (j.items || []).find((x: any) => x.prize === p)
+        const f = (j.items || []).find((x: any) => String(x.prize).toUpperCase() === p)
         if (f) next[p] = Number(f.weight) || 0
+      }
+
+      // fallback por si faltan
+      for (const p of PRIZES) {
+        if (!Number.isFinite(next[p])) next[p] = 20
       }
 
       setWeights(next)
       setAuthed(true)
-      setMsg('Pesos cargados.')
+      setMsg('Pesos cargados ✅')
 
       fetchTodayReport()
       fetchDailyReport()
@@ -101,10 +108,15 @@ export default function AdminPremiosPage() {
   async function saveWeights() {
     setErr(null)
     setMsg(null)
-    setLoading(true)
 
+    if (total !== 100) {
+      setErr(`El total debe ser 100%. Ahora está en ${total}%.`)
+      return
+    }
+
+    setLoading(true)
     try {
-      const items = PRIZES.map((p) => ({ prize: p, weight: weights[p] }))
+      const items = PRIZES.map((p) => ({ prize: p, weight: Number(weights[p]) || 0 }))
       const r = await fetch('/api/admin/prize-weights', {
         method: 'POST',
         headers: {
@@ -122,24 +134,72 @@ export default function AdminPremiosPage() {
   }
 
   function setW(p: PrizeKey, v: number) {
-    setWeights((prev) => ({ ...prev, [p]: v }))
+    const vv = Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0
+    setWeights((prev) => ({ ...prev, [p]: vv }))
   }
 
-  /* ---------------- UI ---------------- */
+  // Ajusta automáticamente para que total = 100, manteniendo proporciones (y reparte redondeos)
+  function normalizeTo100() {
+    setErr(null)
+    setMsg(null)
+
+    const values = PRIZES.map((p) => ({
+      p,
+      w: Math.max(0, Number(weights[p]) || 0),
+    }))
+
+    const sum = values.reduce((a, x) => a + x.w, 0)
+
+    // Si todo está en 0, set parejo
+    if (sum <= 0) {
+      const base = Math.floor(100 / PRIZES.length)
+      const rem = 100 - base * PRIZES.length
+      const next: Record<PrizeKey, number> = { ...weights }
+      PRIZES.forEach((p, i) => (next[p] = base + (i < rem ? 1 : 0)))
+      setWeights(next)
+      setMsg('Ajustado a 100% (parejo).')
+      return
+    }
+
+    // Proporcional + redondeo
+    const raw = values.map((x) => ({ ...x, raw: (x.w / sum) * 100 }))
+    const flo = raw.map((x) => ({ ...x, w2: Math.floor(x.raw) }))
+    let used = flo.reduce((a, x) => a + x.w2, 0)
+    let left = 100 - used
+
+    // Reparte los sobrantes a los que tienen mayor parte decimal
+    const byFrac = raw
+      .map((x) => ({ p: x.p, frac: x.raw - Math.floor(x.raw) }))
+      .sort((a, b) => b.frac - a.frac)
+
+    const next: Record<PrizeKey, number> = { ...weights }
+    for (const it of flo) next[it.p] = it.w2
+
+    let idx = 0
+    while (left > 0) {
+      const target = byFrac[idx % byFrac.length].p
+      next[target] += 1
+      left -= 1
+      idx += 1
+    }
+
+    setWeights(next)
+    setMsg('Ajustado automáticamente a 100%.')
+  }
 
   return (
     <div className="min-h-screen bg-white p-6 text-neutral-900">
       <div className="mx-auto max-w-3xl">
         <div className="rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-neutral-200">
-          <div className="flex justify-between gap-4">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-3xl font-black text-blue-800">Admin Premios</h1>
-              <p className="text-neutral-600">
-                Ajusta porcentajes y revisa actividad del stand
-              </p>
+              <p className="text-neutral-600">Ajusta porcentajes y revisa actividad del stand</p>
             </div>
+
+            {/* mantenemos el total arriba pero más discreto */}
             <div className="text-right">
-              <div className="text-xs">Total</div>
+              <div className="text-xs text-neutral-500">Total</div>
               <div className={`text-2xl font-black ${total === 100 ? 'text-green-700' : 'text-red-700'}`}>
                 {total}%
               </div>
@@ -159,117 +219,160 @@ export default function AdminPremiosPage() {
               />
               <button
                 onClick={fetchWeights}
-                className="rounded-xl bg-blue-700 py-3 font-bold text-white"
+                disabled={!pin.trim() || loading}
+                className="rounded-xl bg-blue-700 py-3 font-bold text-white disabled:opacity-40"
               >
-                Ingresar
+                {loading ? 'Cargando...' : 'Ingresar'}
               </button>
             </div>
           ) : (
             <div className="mt-6 grid gap-6">
-
-              {/* ---------- HOY ---------- */}
-              <div className="rounded-3xl border bg-neutral-50 p-5">
-                <div className="flex justify-between">
+              {/* HOY */}
+              <div className="rounded-3xl border border-neutral-200 bg-white p-5">
+                <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-lg font-black text-blue-800">HOY</div>
-                    <div className="text-xs text-neutral-600">
-                      Chile · {today?.day_key || '--'}
-                    </div>
+                    <div className="text-xs text-neutral-600">Chile · {today?.day_key || '--'}</div>
                   </div>
                   <button
                     onClick={fetchTodayReport}
-                    className="rounded-xl border px-3 py-2 text-sm font-bold"
+                    disabled={todayLoading || loading}
+                    className="rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-extrabold hover:bg-neutral-50 disabled:opacity-40"
                   >
-                    {todayLoading ? '...' : 'Actualizar'}
+                    {todayLoading ? 'Actualizando...' : 'Actualizar'}
                   </button>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3">
-                  <div className="rounded-xl bg-white p-4 text-center">
-                    <div className="text-xs">TOTAL</div>
-                    <div className="text-4xl font-black text-blue-800">
-                      {today?.total ?? 0}
-                    </div>
+                  <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-center">
+                    <div className="text-xs text-neutral-600">TOTAL</div>
+                    <div className="mt-1 text-4xl font-black text-blue-800">{today?.total ?? 0}</div>
                   </div>
 
                   {PRIZES.map((p) => (
-                    <div key={p} className="rounded-xl bg-white p-4 text-center">
-                      <div className="text-xs">{labelPrize(p)}</div>
-                      <div className="text-2xl font-black">
-                        {today?.counts?.[p] ?? 0}
-                      </div>
+                    <div key={p} className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-center">
+                      <div className="text-xs text-neutral-600">{labelPrize(p)}</div>
+                      <div className="mt-1 text-2xl font-black text-neutral-900">{today?.counts?.[p] ?? 0}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* ---------- EVENTO ---------- */}
-              <div className="rounded-3xl border bg-white p-5">
-                <div className="flex justify-between">
+              {/* EVENTO */}
+              <div className="rounded-3xl border border-neutral-200 bg-white p-5">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-lg font-black text-blue-800">
-                      Premios entregados por día
-                    </div>
-                    <div className="text-xs text-neutral-600">
-                      Evento: 11 · 18 · 25 febrero 2026
-                    </div>
+                    <div className="text-lg font-black text-blue-800">Premios entregados por día</div>
+                    <div className="text-xs text-neutral-600">Evento: 11 · 18 · 25 febrero 2026</div>
                   </div>
+
                   <button
                     onClick={fetchDailyReport}
-                    className="rounded-xl border px-3 py-2 text-sm font-bold"
+                    disabled={reportLoading || loading}
+                    className="rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-extrabold hover:bg-neutral-50 disabled:opacity-40"
                   >
-                    {reportLoading ? '...' : 'Actualizar'}
+                    {reportLoading ? 'Actualizando...' : 'Actualizar'}
                   </button>
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  {EVENT_DAYS.map((d) => {
-                    const day = report?.days?.find((x: any) => x.day_key === d)
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {EVENT_DAYS.map((dk) => {
+                    const day = (report?.days || []).find((x: any) => x.day_key === dk)
+                    const totalDay = day?.total ?? 0
                     return (
-                      <div key={d} className="rounded-xl bg-neutral-50 p-4 text-center">
-                        <div className="text-xs">{d}</div>
-                        <div className="text-3xl font-black text-blue-800">
-                          {day?.total ?? 0}
-                        </div>
-                        <div className="text-xs">jugadas</div>
+                      <div key={dk} className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                        <div className="text-xs text-neutral-600">Día</div>
+                        <div className="text-base font-black text-neutral-900">{dk}</div>
+                        <div className="mt-2 text-3xl font-black text-blue-800">{totalDay}</div>
+                        <div className="text-xs text-neutral-600">jugadas</div>
                       </div>
                     )
                   })}
                 </div>
               </div>
 
-              {/* ---------- SLIDERS ---------- */}
-              {PRIZES.map((p) => (
-                <div key={p} className="rounded-2xl border bg-neutral-50 p-4">
-                  <div className="flex justify-between">
-                    <b>{labelPrize(p)}</b>
-                    <input
-                      type="number"
-                      value={weights[p]}
-                      onChange={(e) => setW(p, Number(e.target.value))}
-                      className="w-20 rounded border px-2 text-right"
-                    />
+              {/* -------- PANEL TOTAL JUNTO A LAS BARRAS -------- */}
+              <div className="sticky top-4 z-10 rounded-3xl border border-neutral-200 bg-white/90 backdrop-blur p-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div className="flex items-center gap-4">
+                    <div className="rounded-2xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+                      <div className="text-xs text-neutral-600">Total actual</div>
+                      <div className={`text-3xl font-black ${total === 100 ? 'text-green-700' : 'text-red-700'}`}>
+                        {total}%
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-neutral-50 border border-neutral-200 px-4 py-3">
+                      <div className="text-xs text-neutral-600">Restante</div>
+                      <div className={`text-3xl font-black ${remaining === 0 ? 'text-green-700' : 'text-blue-800'}`}>
+                        {remaining}%
+                      </div>
+                    </div>
+
+                    <div className="hidden md:block text-sm text-neutral-600">
+                      Ajusta las barras y deja el total en <b>100%</b>.
+                    </div>
                   </div>
+
+                  <div className="flex flex-col md:flex-row gap-2">
+                    <button
+                      onClick={normalizeTo100}
+                      disabled={loading}
+                      className="rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-extrabold hover:bg-neutral-50 disabled:opacity-40"
+                    >
+                      Ajustar a 100%
+                    </button>
+
+                    <button
+                      onClick={saveWeights}
+                      disabled={loading || total !== 100}
+                      className="rounded-2xl bg-blue-700 text-white px-5 py-2 text-sm font-extrabold hover:bg-blue-800 disabled:opacity-40"
+                    >
+                      {loading ? 'Guardando...' : 'Guardar cambios'}
+                    </button>
+                  </div>
+                </div>
+
+                {total !== 100 && (
+                  <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    ⚠️ Para guardar, el total debe ser <b>100%</b>. Te faltan/sobran <b>{Math.abs(remaining)}%</b>.
+                  </div>
+                )}
+              </div>
+
+              {/* SLIDERS */}
+              {PRIZES.map((p) => (
+                <div key={p} className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-extrabold text-neutral-900">{labelPrize(p)}</div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={weights[p]}
+                        onChange={(e) => setW(p, Number(e.target.value))}
+                        className="w-24 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-right font-bold text-neutral-900 outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-200"
+                      />
+                      <span className="text-neutral-700 font-semibold">%</span>
+                    </div>
+                  </div>
+
                   <input
                     type="range"
                     min={0}
                     max={100}
                     value={weights[p]}
                     onChange={(e) => setW(p, Number(e.target.value))}
-                    className="mt-3 w-full"
+                    className="mt-4 w-full"
                   />
                 </div>
               ))}
-
-              <button
-                onClick={saveWeights}
-                className="rounded-xl bg-blue-700 py-3 font-black text-white"
-              >
-                Guardar cambios
-              </button>
             </div>
           )}
         </div>
+
+        <p className="text-center text-xs text-neutral-600 mt-4">/admin/premios · Configuración de porcentajes</p>
       </div>
     </div>
   )
