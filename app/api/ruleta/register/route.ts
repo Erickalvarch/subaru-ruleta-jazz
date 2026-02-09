@@ -42,7 +42,10 @@ export async function POST(req: Request) {
 
     const n = String(name || '').trim()
     const p = String(phone || '').trim()
-    const e = String(email || '').trim()
+
+    // ✅ Normaliza email: trim + lower para evitar choques con constraints/regex
+    const e = String(email || '').trim().toLowerCase()
+
     const c = String(comuna || '').trim()
     const m = String(preferred_model || '').trim()
     const r = cleanRut(rut)
@@ -70,9 +73,9 @@ export async function POST(req: Request) {
           name: n,
           rut: r,
           phone: p,
-          email: e,                 // ✅ ya no null
+          email: e,
           comuna: c,
-          preferred_model: m,       // ✅ ya no null
+          preferred_model: m,
           consent: true,
           player_code,
         },
@@ -80,7 +83,14 @@ export async function POST(req: Request) {
       .select('id, player_code')
       .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      const msg =
+        error.message?.includes('players_email_format')
+          ? 'El email no cumple el formato requerido.'
+          : error.message
+      return NextResponse.json({ error: msg }, { status: 500 })
+    }
+
     return NextResponse.json({ player_id: data.id, player_code: data.player_code })
   } catch {
     return NextResponse.json({ error: 'Error inesperado' }, { status: 500 })

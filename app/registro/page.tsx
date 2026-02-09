@@ -44,6 +44,10 @@ function cleanRut(value: string) {
   return value.toUpperCase().replace(/[^0-9K]/g, '')
 }
 
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
 export default function RegistroPage() {
   const [name, setName] = useState('')
   const [rut, setRut] = useState('')
@@ -59,20 +63,32 @@ export default function RegistroPage() {
 
   const rutClean = useMemo(() => cleanRut(rut), [rut])
 
+  const emailTrim = useMemo(() => email.trim(), [email])
+  const emailOk = useMemo(() => isValidEmail(emailTrim), [emailTrim])
+
   const canSubmit = useMemo(() => {
     return (
       name.trim().length >= 2 &&
       rutClean.length >= 8 &&
       phone.trim().length >= 8 &&
+      emailTrim.length >= 5 &&
+      emailOk &&
       comuna.trim().length >= 2 &&
       preferredModel.trim().length >= 2 &&
       consent === true &&
       !loading
     )
-  }, [name, rutClean, phone, comuna, preferredModel, consent, loading])
+  }, [name, rutClean, phone, emailTrim, emailOk, comuna, preferredModel, consent, loading])
 
   async function register() {
     setMsg(null)
+
+    // feedback rápido por si intentan enviar igual
+    if (!emailTrim || !emailOk) {
+      setMsg('Ingresa un email válido.')
+      return
+    }
+
     setLoading(true)
     try {
       const r = await fetch('/api/ruleta/register', {
@@ -82,7 +98,7 @@ export default function RegistroPage() {
           name,
           rut: rutClean,
           phone,
-          email,
+          email: emailTrim,
           comuna,
           preferred_model: preferredModel,
           consent,
@@ -144,7 +160,14 @@ export default function RegistroPage() {
             {!playerCode ? (
               <div className="mt-6 grid gap-4">
                 {/* Nombre */}
-                <Input label="Nombre" value={name} setValue={setName} placeholder="Ej: Erick Alvarez" />
+                <Input
+                  label="Nombre"
+                  value={name}
+                  setValue={setName}
+                  placeholder="Ej: Erick Alvarez"
+                  required
+                  autoComplete="name"
+                />
 
                 {/* RUT */}
                 <Input
@@ -152,17 +175,33 @@ export default function RegistroPage() {
                   value={rut}
                   setValue={(v) => setRut(formatRutInput(v))}
                   placeholder="12.345.678-K"
+                  required
+                  inputMode="text"
+                  autoComplete="off"
                 />
 
                 {/* Teléfono */}
-                <Input label="Teléfono" value={phone} setValue={setPhone} placeholder="+56 9 1234 5678" />
+                <Input
+                  label="Teléfono"
+                  value={phone}
+                  setValue={setPhone}
+                  placeholder="+56 9 1234 5678"
+                  required
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                />
 
                 {/* Email */}
                 <Input
                   label="Email"
                   value={email}
                   setValue={setEmail}
-                  placeholder="correo@ejemplo.com (opcional)"
+                  placeholder="correo@ejemplo.com"
+                  required
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
                 />
 
                 {/* Comuna */}
@@ -172,6 +211,8 @@ export default function RegistroPage() {
                   setValue={setComuna}
                   placeholder="Ej: Las Condes"
                   list="comunas"
+                  required
+                  autoComplete="address-level2"
                 />
                 <datalist id="comunas">
                   {COMUNAS_SUGERIDAS.map((c) => (
@@ -188,6 +229,7 @@ export default function RegistroPage() {
                     className="w-full rounded-2xl bg-white border border-neutral-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                     value={preferredModel}
                     onChange={(e) => setPreferredModel(e.target.value)}
+                    required
                   >
                     <option value="">Selecciona un modelo</option>
                     {MODELOS_SUBARU.map((m) => (
@@ -205,6 +247,7 @@ export default function RegistroPage() {
                     className="mt-1 h-5 w-5 accent-blue-700"
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
+                    required
                   />
                   <span className="text-sm text-neutral-700">
                     Acepto bases/consentimiento para participar.
@@ -261,22 +304,36 @@ function Input({
   setValue,
   placeholder,
   list,
+  required,
+  type = 'text',
+  inputMode,
+  autoComplete,
 }: {
   label: string
   value: string
   setValue: (v: string) => void
   placeholder?: string
   list?: string
+  required?: boolean
+  type?: React.HTMLInputTypeAttribute
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
+  autoComplete?: string
 }) {
   return (
     <div className="grid gap-2">
-      <label className="text-sm font-medium text-neutral-800">{label}</label>
+      <label className="text-sm font-medium text-neutral-800">
+        {label}{required ? ' *' : ''}
+      </label>
       <input
         className="w-full rounded-2xl bg-white border border-neutral-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         list={list}
+        required={required}
+        type={type}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
       />
     </div>
   )
