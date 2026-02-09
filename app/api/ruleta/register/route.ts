@@ -31,44 +31,54 @@ function cleanRut(raw: string) {
     .replace(/[^0-9K]/g, '')
 }
 
+function isValidEmail(email: string) {
+  // validación simple (suficiente para stand)
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
 export async function POST(req: Request) {
   try {
     const { name, rut, phone, email, comuna, preferred_model, consent } = await req.json()
-
 
     const n = String(name || '').trim()
     const p = String(phone || '').trim()
     const e = String(email || '').trim()
     const c = String(comuna || '').trim()
+    const m = String(preferred_model || '').trim()
     const r = cleanRut(rut)
 
-    if (!n || !p || !r || !c || consent !== true) {
+    // ✅ TODOS obligatorios
+    if (!n || !p || !r || !e || !c || !m || consent !== true) {
       return NextResponse.json(
-        { error: 'Completa Nombre, RUT, Teléfono, Comuna y acepta el consentimiento.' },
+        { error: 'Completa todos los campos y acepta el consentimiento.' },
         { status: 400 }
       )
+    }
+
+    // ✅ Email con formato básico
+    if (!isValidEmail(e)) {
+      return NextResponse.json({ error: 'Email inválido.' }, { status: 400 })
     }
 
     const player_code = await generateUniqueCode()
 
     const { data, error } = await supabaseAdmin
-  .from('players')
-  .insert([
-    {
-      campaign_id: CAMPAIGN_ID,
-      name: n,
-      rut: r,
-      phone: p,
-      email: e || null,
-      comuna: c,
-      preferred_model: preferred_model || null,
-      consent: true,
-      player_code,
-    },
-  ])
-  .select('id, player_code')
-  .single()
-
+      .from('players')
+      .insert([
+        {
+          campaign_id: CAMPAIGN_ID,
+          name: n,
+          rut: r,
+          phone: p,
+          email: e,                 // ✅ ya no null
+          comuna: c,
+          preferred_model: m,       // ✅ ya no null
+          consent: true,
+          player_code,
+        },
+      ])
+      .select('id, player_code')
+      .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ player_id: data.id, player_code: data.player_code })
