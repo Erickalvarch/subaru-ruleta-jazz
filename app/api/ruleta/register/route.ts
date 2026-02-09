@@ -84,12 +84,33 @@ export async function POST(req: Request) {
       .single()
 
     if (error) {
-      const msg =
-        error.message?.includes('players_email_format')
-          ? 'El email no cumple el formato requerido.'
-          : error.message
-      return NextResponse.json({ error: msg }, { status: 500 })
-    }
+  // Duplicado por índice único (email ya usado en esta campaña)
+  if (
+    error.code === '23505' &&
+    (error.constraint === 'players_campaign_email_unique' ||
+      error.message?.includes('players_campaign_email_unique'))
+  ) {
+    return NextResponse.json(
+      { error: 'Este correo ya está registrado para esta actividad.' },
+      { status: 400 }
+    )
+  }
+
+  // Email con formato inválido (CHECK constraint)
+  if (error.message?.includes('players_email_format')) {
+    return NextResponse.json(
+      { error: 'El correo ingresado no tiene un formato válido.' },
+      { status: 400 }
+    )
+  }
+
+  // Otros errores
+  return NextResponse.json(
+    { error: 'No se pudo completar el registro. Intenta nuevamente.' },
+    { status: 500 }
+  )
+}
+
 
     return NextResponse.json({ player_id: data.id, player_code: data.player_code })
   } catch {
