@@ -320,7 +320,7 @@ export default function StandPage() {
         <img
           src="/images/subaru.png"
           alt="Subaru Jazz"
-          className="w-full max-w-[1200px] h-[92px] md:h-[120px] object-contain"
+          className="w-full max-w-[1200px] h-[120px] md:h-[180px] object-contain"
         />
       </div>
 
