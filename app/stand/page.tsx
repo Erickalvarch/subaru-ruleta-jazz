@@ -318,7 +318,7 @@ export default function StandPage() {
       {/* HEADER SUPERIOR (sin encerrar en 16:9) */}
       <div className="w-full flex justify-center px-6 pt-8">
         <img
-          src="/images/header-evento2.jpg"
+          src="/images/subaru.png"
           alt="Subaru Jazz"
           className="w-full max-w-[1200px] h-[92px] md:h-[120px] object-contain"
         />
