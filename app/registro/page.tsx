@@ -80,12 +80,11 @@ export default function RegistroPage() {
       consent === true &&
       !loading
     )
-}, [firstName, lastName, rutClean, phone, emailTrim, emailOk, comuna, preferredModel, consent, loading])
+  }, [firstName, lastName, rutClean, phone, emailTrim, emailOk, comuna, preferredModel, consent, loading])
 
   async function register() {
     setMsg(null)
 
-    // feedback rápido por si intentan enviar igual
     if (!emailTrim || !emailOk) {
       setMsg('Ingresa un email válido.')
       return
@@ -98,7 +97,7 @@ export default function RegistroPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           first_name: firstName,
-          last_name: lastName,          
+          last_name: lastName,
           rut: rutClean,
           phone,
           email: emailTrim,
@@ -107,8 +106,10 @@ export default function RegistroPage() {
           consent,
         }),
       })
+
       const j = await r.json()
       if (!r.ok) return setMsg(j.error || 'Error registrando')
+
       setPlayerCode(j.player_code)
     } finally {
       setLoading(false)
@@ -163,27 +164,24 @@ export default function RegistroPage() {
 
             {!playerCode ? (
               <div className="mt-6 grid gap-4">
-                {/* Nombre */}
                 <Input
-  label="Nombre"
-  value={firstName}
-  setValue={setFirstName}
-  placeholder="Ej: Erick"
-  required
-  autoComplete="given-name"
-/>
+                  label="Nombre"
+                  value={firstName}
+                  setValue={setFirstName}
+                  placeholder="Ej: Erick"
+                  required
+                  autoComplete="given-name"
+                />
 
-<Input
-  label="Apellido"
-  value={lastName}
-  setValue={setLastName}
-  placeholder="Ej: Alvarez"
-  required
-  autoComplete="family-name"
-/>
+                <Input
+                  label="Apellido"
+                  value={lastName}
+                  setValue={setLastName}
+                  placeholder="Ej: Alvarez"
+                  required
+                  autoComplete="family-name"
+                />
 
-
-                {/* RUT */}
                 <Input
                   label="RUT"
                   value={rut}
@@ -194,7 +192,6 @@ export default function RegistroPage() {
                   autoComplete="off"
                 />
 
-                {/* Teléfono */}
                 <Input
                   label="Teléfono"
                   value={phone}
@@ -206,7 +203,6 @@ export default function RegistroPage() {
                   autoComplete="tel"
                 />
 
-                {/* Email */}
                 <Input
                   label="Email"
                   value={email}
@@ -218,7 +214,6 @@ export default function RegistroPage() {
                   autoComplete="email"
                 />
 
-                {/* Comuna */}
                 <Input
                   label="Comuna"
                   value={comuna}
@@ -234,7 +229,6 @@ export default function RegistroPage() {
                   ))}
                 </datalist>
 
-                {/* Modelo preferido */}
                 <div className="grid gap-2">
                   <label className="text-sm font-medium text-neutral-800">
                     Modelo Subaru preferido
@@ -254,7 +248,6 @@ export default function RegistroPage() {
                   </select>
                 </div>
 
-                {/* Consentimiento */}
                 <label className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
                   <input
                     type="checkbox"
@@ -336,7 +329,8 @@ function Input({
   return (
     <div className="grid gap-2">
       <label className="text-sm font-medium text-neutral-800">
-        {label}{required ? ' *' : ''}
+        {label}
+        {required ? ' *' : ''}
       </label>
       <input
         className="w-full rounded-2xl bg-white border border-neutral-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"

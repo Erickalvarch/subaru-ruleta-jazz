@@ -32,26 +32,24 @@ function cleanRut(raw: string) {
 }
 
 function isValidEmail(email: string) {
-  // validación simple (suficiente para stand)
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 export async function POST(req: Request) {
   try {
-    const { first_name, last_name, rut, phone, email, comuna, preferred_model, consent } = await req.json()
+    const { first_name, last_name, rut, phone, email, comuna, preferred_model, consent } =
+      await req.json()
 
     const first = String(first_name || '').trim()
-const last = String(last_name || '').trim()
+    const last = String(last_name || '').trim()
     const p = String(phone || '').trim()
 
-    // ✅ Normaliza email: trim + lower para evitar choques con constraints/regex
     const e = String(email || '').trim().toLowerCase()
 
     const c = String(comuna || '').trim()
     const m = String(preferred_model || '').trim()
     const r = cleanRut(rut)
 
-    // ✅ TODOS obligatorios
     if (!first || !last || !p || !r || !e || !c || !m || consent !== true) {
       return NextResponse.json(
         { error: 'Completa todos los campos y acepta el consentimiento.' },
@@ -59,7 +57,6 @@ const last = String(last_name || '').trim()
       )
     }
 
-    // ✅ Email con formato básico
     if (!isValidEmail(e)) {
       return NextResponse.json({ error: 'Email inválido.' }, { status: 400 })
     }
@@ -70,24 +67,22 @@ const last = String(last_name || '').trim()
       .from('players')
       .insert([
         {
-  campaign_id: CAMPAIGN_ID,
-  first_name: first,
-  last_name: last,
-  rut: r,
-  phone: p,
-  email: e,
-  comuna: c,
-  preferred_model: m,
-  consent: true,
-  player_code,
-}
-
+          campaign_id: CAMPAIGN_ID,
+          first_name: first,
+          last_name: last,
+          rut: r,
+          phone: p,
+          email: e,
+          comuna: c,
+          preferred_model: m,
+          consent: true,
+          player_code,
+        },
       ])
       .select('id, player_code')
       .single()
 
     if (error) {
-      // Email duplicado (índice único campaign_id + email)
       if (
         error.code === '23505' &&
         (error.message?.includes('players_campaign_email_unique') ||
@@ -99,7 +94,6 @@ const last = String(last_name || '').trim()
         )
       }
 
-      // Email formato inválido (CHECK constraint)
       if (error.message?.includes('players_email_format')) {
         return NextResponse.json(
           { error: 'El correo ingresado no tiene un formato válido.' },
@@ -107,7 +101,6 @@ const last = String(last_name || '').trim()
         )
       }
 
-      // Otros errores
       return NextResponse.json(
         { error: 'No se pudo completar el registro. Intenta nuevamente.' },
         { status: 500 }
