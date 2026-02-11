@@ -38,9 +38,10 @@ function isValidEmail(email: string) {
 
 export async function POST(req: Request) {
   try {
-    const { name, rut, phone, email, comuna, preferred_model, consent } = await req.json()
+    const { first_name, last_name, rut, phone, email, comuna, preferred_model, consent } = await req.json()
 
-    const n = String(name || '').trim()
+    const first = String(first_name || '').trim()
+const last = String(last_name || '').trim()
     const p = String(phone || '').trim()
 
     // ✅ Normaliza email: trim + lower para evitar choques con constraints/regex
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
     const r = cleanRut(rut)
 
     // ✅ TODOS obligatorios
-    if (!n || !p || !r || !e || !c || !m || consent !== true) {
+    if (!first || !last || !p || !r || !e || !c || !m || consent !== true) {
       return NextResponse.json(
         { error: 'Completa todos los campos y acepta el consentimiento.' },
         { status: 400 }
@@ -69,16 +70,18 @@ export async function POST(req: Request) {
       .from('players')
       .insert([
         {
-          campaign_id: CAMPAIGN_ID,
-          name: n,
-          rut: r,
-          phone: p,
-          email: e,
-          comuna: c,
-          preferred_model: m,
-          consent: true,
-          player_code,
-        },
+  campaign_id: CAMPAIGN_ID,
+  first_name: first,
+  last_name: last,
+  rut: r,
+  phone: p,
+  email: e,
+  comuna: c,
+  preferred_model: m,
+  consent: true,
+  player_code,
+}
+
       ])
       .select('id, player_code')
       .single()

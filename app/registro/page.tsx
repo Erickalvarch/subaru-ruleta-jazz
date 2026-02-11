@@ -49,7 +49,8 @@ function isValidEmail(email: string) {
 }
 
 export default function RegistroPage() {
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [rut, setRut] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -68,7 +69,8 @@ export default function RegistroPage() {
 
   const canSubmit = useMemo(() => {
     return (
-      name.trim().length >= 2 &&
+      firstName.trim().length >= 2 &&
+      lastName.trim().length >= 2 &&
       rutClean.length >= 8 &&
       phone.trim().length >= 8 &&
       emailTrim.length >= 5 &&
@@ -78,7 +80,7 @@ export default function RegistroPage() {
       consent === true &&
       !loading
     )
-  }, [name, rutClean, phone, emailTrim, emailOk, comuna, preferredModel, consent, loading])
+}, [firstName, lastName, rutClean, phone, emailTrim, emailOk, comuna, preferredModel, consent, loading])
 
   async function register() {
     setMsg(null)
@@ -95,7 +97,8 @@ export default function RegistroPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
+          first_name: firstName,
+          last_name: lastName,          
           rut: rutClean,
           phone,
           email: emailTrim,
@@ -113,7 +116,8 @@ export default function RegistroPage() {
   }
 
   function reset() {
-    setName('')
+    setFirstName('')
+    setLastName('')
     setRut('')
     setPhone('')
     setEmail('')
@@ -161,13 +165,23 @@ export default function RegistroPage() {
               <div className="mt-6 grid gap-4">
                 {/* Nombre */}
                 <Input
-                  label="Nombre"
-                  value={name}
-                  setValue={setName}
-                  placeholder="Ej: Erick Alvarez"
-                  required
-                  autoComplete="name"
-                />
+  label="Nombre"
+  value={firstName}
+  setValue={setFirstName}
+  placeholder="Ej: Erick"
+  required
+  autoComplete="given-name"
+/>
+
+<Input
+  label="Apellido"
+  value={lastName}
+  setValue={setLastName}
+  placeholder="Ej: Alvarez"
+  required
+  autoComplete="family-name"
+/>
+
 
                 {/* RUT */}
                 <Input
