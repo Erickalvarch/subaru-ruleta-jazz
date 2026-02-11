@@ -45,7 +45,6 @@ export async function POST(req: Request) {
     const p = String(phone || '').trim()
 
     const e = String(email || '').trim().toLowerCase()
-
     const c = String(comuna || '').trim()
     const m = String(preferred_model || '').trim()
     const r = cleanRut(rut)
@@ -68,6 +67,7 @@ export async function POST(req: Request) {
       .insert([
         {
           campaign_id: CAMPAIGN_ID,
+          name: `${first} ${last}`.trim(),
           first_name: first,
           last_name: last,
           rut: r,
