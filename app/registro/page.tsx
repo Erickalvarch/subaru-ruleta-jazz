@@ -143,7 +143,7 @@ export default function RegistroPage() {
           {/* HEADER */}
           <div className="mb-10 flex justify-center">
             <img
-              src="/images/header-evento.png"
+              src="/images/subaru.png"
               alt="Evento Subaru Jazz"
               className="w-full max-w-3xl object-contain"
             />
